@@ -1,0 +1,271 @@
+# Prompt: Khushdil Ayurvedic Clinic, 3D scroll website
+
+## What it is
+
+Build a single-file website for Khushdil Ayurvedic Clinic, run by Vaid Dr. Jashan Sandhu. Use plain HTML, CSS and vanilla JavaScript. No framework, no build step, no libraries. It is a warm paper-coloured page with deep forest green, antique gold and turmeric accents. It reads like a printed apothecary catalogue that comes alive in 3D.
+
+One page, six scroll chapters:
+1. Hero: headline over a curved, endlessly drifting row of video cards (his Instagram reels).
+2. The Dispensary: an endless shelf of herbal medicine boxes, spine out. One box is pulled out and physically turned in 3D to show its front. Clicking it opens a detail sheet.
+3. The Journey: a pinned scroll story where five glass plates fly past in 3D, one per step.
+4. The Vaid: portrait, story, and an endless ingredient marquee.
+5. Patient Stories: a 3D tilted card carousel.
+6. Book: a form that opens WhatsApp with the answers prefilled.
+
+Everything is driven by one requestAnimationFrame loop plus the Web Animations API. No CSS keyframes. There is NO opacity fade anywhere: every reveal is a mask slide, a clip or a scale.
+
+## Content rules (important)
+
+- Real facts (use exactly): clinic name Khushdil Ayurvedic Clinic; doctor Dr. Jashan Sandhu (Vaid); Instagram @vaid.jashansandhu (https://www.instagram.com/vaid.jashansandhu), 13K+ followers; phones 62846-64722 and 78889-49756 (India, +91); bio lines "Ayurvedic: Balance Life Naturally", "Old Generation Business", "Only Ayurvedic Medicine".
+- Placeholders, shown in square brackets and easy to find in one DATA object: degree, years of experience, clinic address, city, timings, reviews, the treatment list, and every treatment description. The doctor must confirm all of these.
+- Never write "99.9% result", "100% cure", "guaranteed", or any promise of curing a named disease. Use soft words: "support", "care", "guidance". Footer disclaimer is required.
+- Never invent reviews or numbers. Review cards show "[Real review here]" until real ones are pasted.
+
+## Media: every asset slot
+
+All art is optional. If a URL is empty, the page draws a CSS fallback (gradient box with the typographic label), so nothing breaks. Put every slot in one object at the top of the script:
+
+ASSET = { logo:"", doctor:"", spines:"", covers:"", reels:[ ...10 urls ], posters:[ ...10 urls ] }
+
+### Sheets (generate with an AI image tool, transparent PNG converted to WebP)
+
+| Sheet | Size (px) | Contents |
+|---|---|---|
+| spines | 2688 x 1880 | 8 box SIDES in one row, one per treatment, in shelf order |
+| covers | 2480 x 2360 | 8 box FRONTS in a 4 x 2 grid, same order |
+
+Spine boxes (x, y, w, h): x = i*336 + 16, y = 40, w = 304, h = 1800 (i = 0..7). Ratio is about 1:6.
+Cover boxes: col = i % 4, row = floor(i / 4): x = col*620 + 20, y = row*1180 + 40, w = 579, h = 1100. Ratio is about 1:1.9.
+
+Crop by CSS background, exactly as follows. For a box x, y, w, h on a sheet W x H:
+- background-image: url(sheet)
+- background-size: (W/w*100)% (H/h*100)%
+- background-position: (x/(W-w)*100)% (y/(H-h)*100)%
+The crop is stretched to fill its face exactly.
+
+The detail poster is an SVG <image> of the cover's sheet inside a clipped group (474 x 900): x = -x*474/w, y = -y*900/h, width = W*474/w, height = H*900/h, preserveAspectRatio="none". Preload both sheets with Image() objects at start.
+
+AI image prompt for the spines sheet: "A row of 8 tall narrow worn cardboard apothecary medicine box sides, flat front view, transparent background, hand-printed vintage Indian Ayurveda packaging, vertical condensed serif title, small botanical illustration at the top, 'KHUSHDIL' at the bottom with a boxed 'AYURVEDIC' badge, palette forest green, turmeric yellow, clay red and cream, screen-print texture, no real brands."
+AI image prompt for the covers sheet: "8 box fronts in a 4x2 grid, transparent background, same packaging family, each with a big condensed serif treatment title, one duotone screen-print botanical illustration (joint, gut, scale, sugar leaf, skin, hair, woman, moon), 'KHUSHDIL AYURVEDIC CLINIC' at the top, 'Only Ayurvedic Medicine' bottom."
+
+### Other slots
+- logo: his real round logo (green leaf wreath, gold "KHUSHDIL AYURVEDIC CLINIC"). Fallback: an inline SVG leaf wreath.
+- doctor: a clean portrait, 4:5, WebP. Fallback: a green arch with initials "JS".
+- reels and posters: 10 vertical (9:16) clips cut from his own Instagram reels, muted, 4 to 8 seconds, under 3 MB each, plus a still poster for each. Fallback: a green gradient card with a leaf glyph.
+
+## Fonts (self-host as WOFF2, or Google Fonts with display=swap)
+
+| Family | Weight / style | Use |
+|---|---|---|
+| Fraunces (variable, opsz 9..144) | 400, 500, plus 400 italic | Headlines, titles, synopsis, quotes |
+| Inter Tight | 500, 600 | Every small uppercase label, tab, button, meta line, nav |
+| Caveat | 600 | Hand-drawn notes, in herb green |
+| Noto Sans Devanagari | 500 | All Hindi text (subset to the characters used) |
+| Noto Sans Gurmukhi | 500 | Only the logo word ਖੁਸ਼ਦਿਲ |
+
+- Sans stack: "Inter Tight", "Noto Sans Devanagari", system-ui, sans-serif.
+- Serif stack: "Fraunces", Georgia, serif.
+- Hindi strings used on the page: आयुर्वेदिक, दवाखाना, सभी, वापस, बंद करें, खोलें, खुशदिल, जोड़ों का दर्द, पाचन, वज़न, शुगर, त्वचा, बाल, महिला स्वास्थ्य, नींद और तनाव, नाड़ी परीक्षा, व्हाट्सऐप पर पूछें, वैद्य जी से मिलें. Subset the Devanagari font to exactly these plus digits.
+
+## Tokens
+
+| Token | Value | Used for |
+|---|---|---|
+| --paper | #F2EDDF | Page background |
+| --sheet | #F8F4E9 | Detail sheet, form panel |
+| --ink | #10261A | All text, ring cursor, borders |
+| --muted | #6A6E5F | Meta lines, credits |
+| --herb | #2F6B3F | Italic emphasis, tab indicator, notes, OPEN cursor |
+| --forest | #0E3B26 | Primary buttons, dark chapter background |
+| --gold | #B8893A | Hairlines, step numerals, badges |
+| --turmeric | #E0A62B | Ink-blot stain, small accents |
+| --mint | #DDE6C8 | Badge pill, review cards |
+| --rule | rgba(16,38,26,.9) | 1px borders of every boxed label |
+| --ease | cubic-bezier(.2,.8,.2,1) | Every transition and text slide |
+| --u | min(100vw/1440, 100svh/900) | Hero frame unit (desktop) |
+| --H | min(46vh, 31vw) desktop, min(60vw, 40svh) mobile | Height of every medicine box |
+
+### Paper grain
+A fixed full-screen layer (z-index 40, pointer-events none) above content, under the detail sheet. Pattern: a 220 x 220 inline SVG tile made from feTurbulence fractalNoise (baseFrequency .85, 3 octaves, stitchTiles) through an feColorMatrix to warm grey rgb(.45,.42,.38) at alpha .22. mix-blend-mode multiply, opacity .55.
+
+### Global behaviour
+- body: antialiased, user-select none, normal vertical scroll (overflow-x hidden). Native scrolling stays on; only the pinned chapters read scroll position.
+- On (pointer:fine): hide the native cursor on html, body, buttons, links.
+- .lbl: Inter Tight 600, 10.5px, line-height 1, letter-spacing .09em, uppercase.
+- .box: inline-flex, 21px tall, 0 8px padding, 1px --rule border.
+- Mask reveal helper .m: overflow hidden; inner span starts at translateY(110%); an IntersectionObserver (threshold .25) animates it to 0 over 900ms var(--ease), delay index*75ms inside its group. Plays once.
+
+## Chapter 1: Hero (100svh, frame 1440 x 900, centred, units are --u)
+
+- Top bar, 84u tall: logo left at (37, 26): round logo mark 44u plus "Khushdil" in Fraunces 500 26u over "AYURVEDIC CLINIC / आयुर्वेदिक" in Inter Tight 600 9u, letter-spacing .34em. Nav centred, starting x 470: Treatments · Journey · The Vaid · Stories · Contact, Inter Tight 500 16u, gap 31u. Right: white "Call" pill 92x40 at (1129, 22), forest "Book Consultation" pill 170x40 at (1233, 22).
+- Badge: mint pill 330x37 at (555, 104): "13K+ follow Vaid Jashan on Instagram", Inter Tight 500 16u in forest green.
+- Headline, centred, top 158: Fraunces 500, 84u on 88u, tracking -0.03em, ink. Line 1 "Ayurveda, the way", line 2 "your family knew it." with line 2 in italic herb green.
+- Subline, centred, top 366, 20u on 30u, --muted, three lines: "Only Ayurvedic medicine, prescribed with patience by / Vaid Jashan Sandhu. The old-generation way of healing, / made simple for today."
+- Hand notes (Caveat 600 22u, herb): "Balance life naturally" rotated -8deg at (236, 352) with a small curl doodle; "Watch real stories" rotated 14deg at (1195, 300) with a long curved arrow that starts BELOW the note and curls down to the cards; "Talk to Vaid ji" rotated 20deg at (505, 818) with a short arrow to the button. SVG strokes draw themselves (stroke-dashoffset animated by WAAPI).
+- Button: forest pill "Book Consultation" 190x58, inside a dashed herb outline ring 208x74, at (616, 790). Opens #book.
+
+### Curved reel carousel
+Ten tall cards scroll right to left at 50u per second, looping seamlessly, pitch 196u. Pointer and touch drag follows 1:1, coasts after release (velocity decays about 95% per second), then auto-scroll resumes. Cursor grab / grabbing. Drive the scroll from a long WAAPI clock (document.documentElement.animate(..., {duration: 1e9})) so it is time-based.
+- Curve: for a card, t is its unpushed offset from x = 720. Centre x = 720 + t*(1 + 0.083*(t/706)^2). Normalised distance d = |x - 720| / 706.
+- Width = (170 + 48*d^2)u. Each vertical edge's height = (280 + 92*q^2.6)u, where q is that edge's own normalised distance. Vertical centre = (604 - 12*d^2)u.
+- Result: centre cards are upright 170x280; edge cards grow to about 370u tall and lean like the inside of a cylinder.
+- Draw each card as a rounded quad with clip-path: path(), 15u corners, recomputed each frame. No drop shadow. A small frosted round play icon bottom-left. Cards are clipped by the frame edge.
+- Each card holds a <video> (ASSET.reels[i], muted, loop, playsinline, preload metadata) over its poster, cover-fitted. Only play cards that are on screen. Click opens the Instagram profile in a new tab.
+
+### Entrance (one-time WAAPI sequence)
+Nav drops in, badge scales in, each headline line rises out of its own mask, subline, card row rises, button scales in, doodles draw, notes slide in.
+
+## Chapter 2: The Dispensary (100svh, 3D medicine-box shelf)
+
+Everything is positioned from the section centre using --H, so it looks the same at any desktop size.
+
+### Heading and tabs
+- Top-left (32px, 110px): boxed label "THE DISPENSARY / दवाखाना".
+- Five boxed .lbl tabs centred, top at 50% - H/2 - 86px: ALL / सभी, BODY, SKIN & HAIR, WOMEN, MIND. Each 23px tall, 0 11px padding, margin-left -1px so borders merge.
+- Indicator: a herb-green block behind the tabs, 23px tall. Its width and translateX are set to the active tab's offsetWidth and offsetLeft and transition over .6s var(--ease). Active text turns white over .45s. The active tab is always the category of the active box. ALL is never highlighted.
+
+### The stage
+- Section: full width, top at 50% - H/2 - 40px, height H + 80px, perspective 2200px, perspective-origin 50% 50%, touch-action pan-y.
+- A zero-size .stage at left 50%, top 50%, transform-style preserve-3d, holding every box.
+- Measure H by inserting an off-screen probe with height var(--H). Then: ws = H*142/840 (spine width), d = H*474/900 (cover width = box depth), gap = H*0.03. Write ws and d to the stage as --ws and --d.
+- Each .box3d is a zero-size preserve-3d element with will-change transform and two faces, each H tall, top at -H/2, backface-visibility hidden, 2px radius:
+  - Spine face .sp: width --ws, left -ws/2, transform translateZ(d/2).
+  - Cover face .cv: width --d, left -d/2, transform rotateY(90deg) translateZ(ws/2), box-shadow 0 30px 60px -28px rgba(16,22,12,.55).
+  - Each face has an ::after black overlay whose opacity comes from --shade. Spine shade = o*.55, cover shade = (1 - o)*.5.
+- Endless shelf: render the 8 boxes three times (24 boxes), virtual index v = copy*8 + i. Relative index r = ((v - s) mod 24) brought into -12..+12. Skip any box whose x is more than W/2 + 1.5d from centre (visibility hidden).
+
+### Placement and turning
+- x = F(r) = r*(ws + gap) + (d - ws + 1.6*gap)*B(r), where B(r) = (r + sin(pi*r)/pi)/2 for |r| < 1, else +-0.5.
+- Openness o = smoothstep(max(0, 1 - |r|)), smoothstep(x) = x*x*(3 - 2x).
+- Transform order: translate3d(x, y, z) rotateZ() rotateX() rotateY(), where
+  - rotateY = -90deg*o + tiltY*o
+  - rotateX = tiltX*o
+  - rotateZ = -4.5deg*o
+  - z = o*0.2*H
+  - y = -o*0.025*H - lift*0.045*H
+- z-index = round(100 - |r|*4).
+- Hover lift: hovering any box with |r| > .5 sets its lift target to 1, easing at 1 - e^(-12*dt). A hovered spine rises like a finger pulling it halfway out.
+- Tilt toward the cursor: when the cursor is within 0.55d horizontally of the centre and 0.55H vertically of the shelf centre, the page is not in detail view and |T - s| < .3: tiltY targets (mx - W/2)/(0.55d)*9deg and tiltX targets -(my - cy)/(H/2)*6deg. Elsewhere tiltY drifts to (mx - W/2)/W*5deg and tiltX to 0. Smooth both at 1 - e^(-7*dt).
+
+### Play ring
+A fixed 42px circle, 1px herb border, herb colour, fill rgba(242,237,223,.75), 12px play triangle nudged 2px right. Centred on the open cover's lower-left corner: left = W/2 - 0.5d - 6px, top = shelf centre + 0.36H. Scale = smoothstep(max(0, 1 - |T - s|*3)). Click opens the detail.
+
+### Caption (centred, top 50% + H/2 + 30px, 9px gap, aria-live polite)
+Each line sits in an overflow-hidden mask, width min(92vw, 760px), centred.
+- Title: Fraunces 400, 31px, line-height 1.12, e.g. "Joint Care".
+- Subtitle: .lbl in herb at weight 500: "HINDI / ENGLISH CATEGORY", e.g. "जोड़ों का दर्द / BODY".
+- Line 3: Inter Tight 500, 11px, letter-spacing .08em: the box number "01 / 08".
+Swap animation: a new span is appended over the old one and slides from translateY(dir*105%) to 0, while older spans slide to translateY(-dir*105%) and are removed. 650ms var(--ease), fill both. dir = +1 going right. Flipping through several boxes passes every title through the mask.
+
+### Arrows
+Two 44px buttons at the caption title's height, 20px from each side, 18 x 10 SVG arrows (1.2px stroke). Each moves the target by one box.
+
+### Data: the 8 boxes (shelf order). EDIT THESE, doctor must confirm
+
+| # | id | Title | Hindi | Category | Short text (soft wording) |
+|---|---|---|---|---|---|
+| 0 | joints | Joint Care | जोड़ों का दर्द | BODY | Stiff, aching joints that slow your day. Vaid ji studies the cause first, then prepares natural medicine and a simple routine. |
+| 1 | digestion | Digestion | पाचन | BODY | Gas, acidity and heavy meals. Gentle Ayurvedic care to support your gut, with food guidance. |
+| 2 | weight | Weight Balance | वज़न | BODY | Natural support for healthy weight, built around your body type and daily life. |
+| 3 | sugar | Sugar Balance | शुगर | BODY | Ayurvedic support alongside your doctor's advice. Diet and lifestyle guidance included. |
+| 4 | skin | Skin Care | त्वचा | SKIN & HAIR | Natural care for skin that keeps troubling you, from the inside out. |
+| 5 | hair | Hair Care | बाल | SKIN & HAIR | Herbal support for hair fall and scalp health, with a routine you can keep. |
+| 6 | women | Women's Wellness | महिला स्वास्थ्य | WOMEN | Private, patient, natural care for women's health concerns. |
+| 7 | mind | Sleep & Stress | नींद और तनाव | MIND | Calm for a busy mind and rest for tired nights, the Ayurvedic way. |
+
+### Detail sheet (opens from the open cover)
+A fixed full-screen dialog (z-index 60, --sheet background, visibility hidden until open). Two equal columns, 4vw gap, padding 110px 6vw 56px 7vw. Boxed "CLOSE / बंद करें" at (32, 31). Centred logo in an 84px top band.
+- Left column, centred vertically, max-width 520px, 18px gap, every line in its own mask: herb subtitle .lbl ("HINDI / CATEGORY"); title Fraunces 400 clamp(44px, 5.4vw, 84px), line-height 1, tracking -.025em; muted .lbl "CATEGORY / CARE BY VAID JASHAN SANDHU"; text Fraunces 400 17px, line-height 1.5, max-width 42ch; italic credit Fraunces italic 15px muted: "Prepared and guided by Vaid Jashan Sandhu."; a 44px boxed herb button "ASK ON WHATSAPP / व्हाट्सऐप पर पूछें" that opens wa.me with a prefilled message naming the treatment.
+- Right column: the poster, height min(100%, 78vh), aspect 474/900, an inline SVG viewBox 0 0 474 900 containing the clipped cover <image> and an ink mask.
+- Ink mask: a <mask> in user space (-200, -200, 874 x 1300) with seven white circles, filtered by feTurbulence fractalNoise (baseFrequency .011, 3 octaves, seed 7) into feDisplacementMap scale 120 (R and G channels). Edges become ragged bleeding blots. Blobs (cx, cy, delay ms): (150,330,0) (340,600,120) (250,120,220) (90,760,300) (400,250,360) (260,860,420) (230,470,180). Under the poster, behind the mask, a faint turmeric stain circle (--turmeric, 20% strength) bleeds in with the same blobs.
+
+### Open sequence
+1. Snap T to an integer, fill the texts, point the poster at the cover crop, reset blob radii to 0, read the cover face's screen rect (getBoundingClientRect).
+2. The sheet grows out of the cover: set transform-origin to the cover's centre and animate over 1050ms, cubic-bezier(.76,0,.18,1), fill both, from clip-path inset(top right bottom left round 3px) with rotate(-4.5deg) to inset(0 round 0) with rotate(0).
+3. Text lines slide from translateY(110%) to 0 over 900ms var(--ease), delay 620ms + index*75ms.
+4. At 520ms a rAF loop grows each blob radius from 0 to 720 over 1250ms after its own delay, ease-out cubic 1 - (1-p)^3, stopping at 2.4s.
+5. Play ring scales to 0. Cursor drops OPEN and spine states.
+Close (button or Escape): the sheet animates back to the cover rect with rotate(-4.5deg) over 850ms, then hides and cancels animations.
+
+## Chapter 3: The Journey (pinned 3D plates)
+
+- Track height 600svh. Inside, a sticky stage 100svh, forest green background (--forest), cream text, gold hairlines. Paper grain still applies.
+- Progress p = clamp((scrollY - trackTop)/(trackHeight - 100svh)*5, 0, 4.999). Smooth it: pS += (p - pS)*(1 - e^(-6*dt)).
+- Left half: giant step number "01" Fraunces 400 260u in gold outline (1.5px stroke, transparent fill); beside it small "/ 05" Inter Tight 600 14u. Under it, masked lines for title (Fraunces 400, 54u), Hindi label (.lbl in turmeric), and a 2-line text (cream at 80%, 18u on 28u). A vertical rail at x = 64u with 5 dots; the active dot fills gold, and a gold line grows with pS.
+- Right half: a perspective container (perspective 1800px, overflow hidden) at x 760 to 1440u. Five glass plates, each 380 x 520u, centred at (1000, 470)u, rounded 18u, a liquid-glass look (rgba(255,255,255,.06), backdrop-filter blur(14px), 1px inset hairline gradient), holding a botanical line illustration (inline SVG) and a bottom label. For plate i, t = i - pS:
+  - t >= 0 (active or upcoming): translateZ = -t*380, translateX = t*150, rotateY = -t*16deg, shade = min(t*.35, .7); z-index = 100 - round(t*10).
+  - t < 0 (already passed): translateZ = |t|*700, translateX = t*420, rotateY = |t|*12deg, shade 0; z-index = 200. They slide toward the viewer and out of the container (clipped, no fade).
+- Steps (edit as needed): 01 Nadi Pariksha / नाड़ी परीक्षा "Vaid ji reads your pulse and listens, before any medicine." 02 Root-cause talk / जड़ तक "We look for the cause, not just the symptom." 03 Natural medicine plan / आयुर्वेदिक दवा "Only Ayurvedic medicine, prepared for your body." 04 Food and daily routine / खान-पान "Simple food and lifestyle guidance you can keep." 05 Follow-up / फॉलो-अप "We check in and adjust, step by step."
+- When the rounded step changes, slide the three text lines through their masks with dir = sign of change, 650ms var(--ease).
+
+## Chapter 4: The Vaid
+
+- Background --paper. Two columns, padding 120px 7vw.
+- Left: the portrait in a tall arch (clip-path arch, border radius 999px 999px 0 0 on top), height min(72vh, 640px), 4:5. A thin gold ring offset 18px behind it. The portrait and ring tilt toward the cursor (rotateY up to 6deg, rotateX up to 4deg, perspective 1200px, ease 1 - e^(-7*dt)). Two cut-out herb sprigs at different translateZ drift with scroll (parallax, 0.15 and 0.3 speed).
+- Right: boxed label "THE VAID / वैद्य जी". Masked statement, Fraunces 400 clamp(34px, 3.6vw, 56px), line-height 1.08: "Old-generation healing, / only Ayurvedic medicine, / balance life naturally." Then 3 boxed facts: "OLD GENERATION PRACTICE", "ONLY AYURVEDIC MEDICINE", "[DEGREE] / [YEARS] YEARS". Then two lines of body text in --muted.
+- Marquee under both columns: Fraunces italic 64px, ink, items separated by a small gold leaf glyph: Ashwagandha · Neem · Tulsi · Giloy · Turmeric · Amla · Triphala · Brahmi. Scrolls left at 60u/s, seamless loop.
+
+## Chapter 5: Patient Stories
+
+- Heading, masked: "Stories from our patients". Counter "01 / 05" and two arrow buttons.
+- Five cards 420 x 300u, mint background, 1px --rule border, perspective 1600px on the row. Active card centred, scale 1, rotateY 0. Others: translateX = k*380u, scale .86, rotateY = -k*22deg, shade .25. k is the distance from active, smoothed. Drag, arrows and Left/Right keys move it.
+- Card text: "[Real review here]" in Fraunces 400 20px, name "[Patient name]" in .lbl. Leave placeholders until real reviews are provided.
+
+## Chapter 6: Book (id="book")
+
+- Two columns on --sheet. Left: masked heading "Your first step is a message." Fraunces 400 clamp(44px, 5.4vw, 84px). Under it, the two numbers as large boxed links (tel:+916284664722 and tel:+917888949756) and a boxed WhatsApp link.
+- Right: the form on a --paper card with 1px --rule border. Fields: Name*, Phone*, Age, What brings you in (select: the 8 treatments plus Other), Since when (0-1 month / 1-6 months / 6+ months), Visit (Clinic / Online). Inputs 46px tall, 1px --rule border, Inter Tight 500, floating .lbl labels.
+- Submit: validate Name and Phone, then open https://wa.me/916284664722?text= with an encoded message: "Hello Vaid ji, I'd like to book a consultation. Name: ... Phone: ... Age: ... Concern: ... Since: ... Visit: ...". Show a masked success line "Opening WhatsApp..." under the button.
+
+## Footer and floating buttons
+- Footer: left "(c) KHUSHDIL AYURVEDIC CLINIC. ALL RIGHTS RESERVED." right "INSTAGRAM / WHATSAPP" links. Under it a muted line: "Results vary from person to person. Please consult before use." Address placeholder: "[Clinic address, city] / [Timings]".
+- Mobile only: two 52px floating circles bottom-right (WhatsApp green, Call forest), safe-area aware.
+
+## Custom cursor (fine pointers only)
+58 x 58px, fixed, centred on the pointer (-29px margins), z-index 100. Parts: a 1.5px ink ring, a 6px ink dot, and a hidden label "OPEN / खोलें" in Inter Tight 600 10px, white, centred. Follows the mouse at 1 - e^(-16*dt).
+
+| State | When | Ring | Dot | Label |
+|---|---|---|---|---|
+| default | elsewhere | scale 1 | 1 | hidden |
+| .spine | over a non-open box | .72 | 1 | hidden |
+| .btn | over any button or link | .55 | 0 | hidden |
+| .open | over the open cover | 1.75, herb fill and border | 0 | scale 1 |
+| .drag | over the hero carousel | 1.4, ink border | 0 | label "DRAG" |
+
+Ring transform, background and border transition over .5s / .4s / .4s var(--ease).
+
+## Motion engine (Dispensary and global)
+- State: s (current scroll position in box units), T (target), hover index, active, mx, my, cx, cy, tiltX, tiltY, onCover, isOpen.
+- Each frame: dt clamped to 50ms. s += (T - s)*(1 - e^(-k*dt)), k = 5.2 (18 while dragging); snap when within 1e-4. Normalise s and T by whole loops past +-4 loops. Active = round(s) mod 8; when it changes, run the caption swap with dir = sign(T - s), update the tab indicator.
+- Click a box: if |r| < .5 open the detail, else T = round(T + r). Arrows and Left/Right keys move T by one. Enter opens the detail, Escape closes it. Tabs jump to the first box of that category by the shortest way round the loop; ALL goes to box 0.
+- Wheel inside the shelf only while it is in view: T += delta/(ws + gap)*0.5, then after 160ms of no wheel snap T to an integer. Ignore it while the detail is open. Do not block page scroll when the pointer is outside the shelf.
+- Drag: pointerdown records x and T. After 5px it becomes a drag: T = T0 - dx/(ws + gap). pointerup snaps to an integer. A drag suppresses the click on the box it ended over.
+- Open the page with box 0 centred.
+
+## Responsive (max-width 767px)
+- --H = min(60vw, 40svh). Top bar 64px; nav collapses into a boxed "MENU" button opening a full-screen forest sheet whose links slide up through masks.
+- Hero: stacked and centred: badge, headline clamp(38px, 11vw, 56px), subline, then a 250px-tall curved carousel (same math, scaled to 640u width), then the button and the "Talk to Vaid ji" note. Career and secondary labels at 9px.
+- Dispensary: caption title 24px, arrows 6px from the edges, tabs 9px with 0 7px padding. Finger-drag scrubs the shelf. The detail is a single scrolling column (poster first, 46svh tall, title 42px).
+- Journey: plates sit above the text, text below, each in its half of the sticky stage.
+- Stories: one card visible, drag to swipe.
+- Custom cursor is not shown.
+
+## Reduced motion
+With prefers-reduced-motion: reduce: scroll spring and hover lift become instant (k = 1); caption swaps replace text without sliding; sheet open, close and text rises run in 1ms; the ink starts 5s in the past so the poster is fully visible; no carousel auto-scroll, no marquee, no videos, no tilt; the Journey stacks as a normal list.
+
+## Accessibility
+- Tabs are a <nav aria-label="Treatment categories">; the shelf is a <section aria-label="Treatments shelf">; the caption has aria-live polite. Arrow and play buttons have aria-labels ("Previous treatment", "Next treatment", "Open treatment").
+- Detail is role="dialog" aria-modal="true"; poster SVG is aria-hidden. Trap focus inside it while open and return focus to the shelf on close.
+- All controls are real <button> or <a>. Visible focus ring: 2px herb outline, 3px offset. Text contrast at least 4.5:1.
+
+## SEO
+- Title: "Khushdil Ayurvedic Clinic | Dr. Jashan Sandhu, Natural Ayurvedic Treatment". Meta description: "Only Ayurvedic medicine, by Vaid Jashan Sandhu. Old-generation healing, made simple. Call 62846-64722 or 78889-49756."
+- JSON-LD: MedicalBusiness / Physician with name, telephone array, sameAs [Instagram URL], and address once confirmed. Open Graph tags with the logo.
+
+## Acceptance checklist
+- On load, the hero headline sits centred above a curved row of video cards that keeps drifting left and can be flung by dragging. Edge cards are taller and lean like the inside of a cylinder.
+- In the Dispensary, one box stands turned out at the centre, tilted -4.5 degrees, lifted and casting a shadow. The other boxes repeat endlessly on both sides. Hovering a spine lifts it. Clicking a spine two places over glides the shelf, the open box turns back into a spine, and the caption rolls through each title.
+- The green tab block slides to the new category. The cursor ring shrinks over spines and becomes a green "OPEN / खोलें" disc over the cover, which leans toward it.
+- Clicking the cover grows a tilted sheet of paper out of it to full screen. The text rises line by line and the poster bleeds in as ragged ink blots.
+- Scrolling the Journey flies plates toward you and into depth while the step number, title and rail change.
+- The form opens WhatsApp with a prefilled message. No claim of cure, no fake review, no opacity fades anywhere.

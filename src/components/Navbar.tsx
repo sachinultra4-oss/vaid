@@ -1,9 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { Menu, Phone, X } from 'lucide-react';
+import { Lock, Menu, Phone, X } from 'lucide-react';
 import { SlotImage, useClinicData } from '../context/ClinicContext';
 import { tracker } from '../utils/tracker';
 
-export function Navbar({ scrollProgress }: { scrollProgress: number }) {
+export function Navbar({
+  scrollProgress,
+  onOpenAdmin,
+}: {
+  scrollProgress: number;
+  onOpenAdmin: () => void;
+}) {
   const { content } = useClinicData();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -82,6 +88,16 @@ export function Navbar({ scrollProgress }: { scrollProgress: number }) {
                 <Phone className="w-3.5 h-3.5" aria-hidden="true" />
                 <span>{primaryPhone.display}</span>
               </a>
+
+              <button
+                type="button"
+                onClick={onOpenAdmin}
+                aria-label="Clinic admin login"
+                title="Clinic Admin"
+                className="inline-flex items-center justify-center w-9 h-9 rounded-full border border-[#12201A]/20 text-[#12201A]/75 hover:text-[#0E3B26] hover:border-[#C9A24B] hover:bg-[#F4EFE2] transition-colors cursor-pointer"
+              >
+                <Lock className="w-3.5 h-3.5" aria-hidden="true" />
+              </button>
 
               <button
                 type="button"
@@ -166,6 +182,17 @@ export function Navbar({ scrollProgress }: { scrollProgress: number }) {
             >
               <span>Book a consultation</span>
             </a>
+            <button
+              type="button"
+              onClick={() => {
+                setMenuOpen(false);
+                onOpenAdmin();
+              }}
+              className="inline-flex items-center justify-center gap-2 py-2 text-sm font-bold text-[#F4EFE2]/80 hover:text-[#C9A24B] cursor-pointer"
+            >
+              <Lock className="w-3.5 h-3.5" aria-hidden="true" />
+              <span>Clinic Admin Access</span>
+            </button>
           </div>
         </div>
       )}

@@ -144,10 +144,25 @@ function DeltaLabel({ val, suffix = '%' }: { val: number | null; suffix?: string
   );
 }
 
-export function AdminDashboard({ onNavigatePublic }: { onNavigatePublic: () => void }) {
+export function AdminDashboard({
+  onNavigatePublic,
+  session: controlledSession,
+  onSessionChange,
+}: {
+  onNavigatePublic: () => void;
+  session?: AuthSession | null;
+  onSessionChange?: (session: AuthSession | null) => void;
+}) {
   const { refreshBootstrap } = useClinicData();
-  const [session, setSession] = useState<AuthSession | null>(null);
-  const [activeTab, setActiveTab] = useState<AdminTab>('overview');
+  const [internalSession, setInternalSession] = useState<AuthSession | null>(null);
+  const session = controlledSession !== undefined ? controlledSession : internalSession;
+  const setSession = (next: AuthSession | null) => {
+    if (onSessionChange) onSessionChange(next);
+    else setInternalSession(next);
+  };
+  const [activeTab, setActiveTab] = useState<AdminTab>(() =>
+    session?.user.role === 'staff' ? 'inquiries' : 'overview'
+  );
   const [dateRange, setDateRange] = useState<DateRangeFilter>(() => ({
     preset: '30d',
     ...computePresetDates('30d'),

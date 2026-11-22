@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowRight, MapPin, MessageCircle, Phone, Plus } from 'lucide-react';
+import { ArrowRight, Lock, MapPin, MessageCircle, Phone, Plus } from 'lucide-react';
 import { DATA } from '../data/clinicData';
 import { formatPhoneWhatsApp, useClinicData } from '../context/ClinicContext';
 import { submitPublicInquiry, tracker } from '../utils/tracker';
@@ -380,7 +380,13 @@ export function BookSection() {
   );
 }
 
-export function FooterSection({ onNavigatePrivacy }: { onNavigatePrivacy: () => void }) {
+export function FooterSection({
+  onNavigatePrivacy,
+  onOpenAdmin,
+}: {
+  onNavigatePrivacy: () => void;
+  onOpenAdmin: () => void;
+}) {
   const { content, hasStandInPhotos } = useClinicData();
 
   return (
@@ -411,6 +417,14 @@ export function FooterSection({ onNavigatePrivacy }: { onNavigatePrivacy: () => 
                 className="hover:text-[#C9A24B] cursor-pointer text-left"
               >
                 Privacy Policy
+              </button>
+              <button
+                type="button"
+                onClick={onOpenAdmin}
+                className="inline-flex items-center gap-1.5 hover:text-[#C9A24B] cursor-pointer text-left text-[#F4EFE2]/85"
+              >
+                <Lock className="w-3.5 h-3.5 text-[#C9A24B]" aria-hidden="true" />
+                <span>Clinic Admin</span>
               </button>
             </div>
           </div>

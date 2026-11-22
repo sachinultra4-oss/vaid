@@ -1,5 +1,7 @@
 import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { MessageCircle, Phone } from 'lucide-react';
+import type { AuthSession } from './admin/AdminAuthScreen';
+import { AdminAccessModal } from './components/AdminAccessModal';
 import { BodyMapTool } from './components/BodyMapTool';
 import { BodyTypeQuiz } from './components/BodyTypeQuiz';
 import { CareProcess3D } from './components/CareProcess3D';
@@ -21,7 +23,13 @@ const PrivacyPage = lazy(() =>
   import('./components/PrivacyPage').then((m) => ({ default: m.PrivacyPage }))
 );
 
-function PublicClinicSite({ onNavigatePrivacy }: { onNavigatePrivacy: () => void }) {
+function PublicClinicSite({
+  onNavigatePrivacy,
+  onOpenAdmin,
+}: {
+  onNavigatePrivacy: () => void;
+  onOpenAdmin: () => void;
+}) {
   const { content } = useClinicData();
   const [scrollProgress, setScrollProgress] = useState(0);
 
@@ -55,7 +63,7 @@ function PublicClinicSite({ onNavigatePrivacy }: { onNavigatePrivacy: () => void
         Skip to main content
       </a>
 
-      <Navbar scrollProgress={scrollProgress} />
+      <Navbar scrollProgress={scrollProgress} onOpenAdmin={onOpenAdmin} />
 
       <main id="main-content">
         <HeroSection />
@@ -71,7 +79,7 @@ function PublicClinicSite({ onNavigatePrivacy }: { onNavigatePrivacy: () => void
         <BookSection />
       </main>
 
-      <FooterSection onNavigatePrivacy={onNavigatePrivacy} />
+      <FooterSection onNavigatePrivacy={onNavigatePrivacy} onOpenAdmin={onOpenAdmin} />
 
       {/* Mobile Floating WhatsApp + Call Buttons */}
       <div
@@ -119,6 +127,8 @@ function AppRouter() {
   const [pathname, setPathname] = useState<string>(() =>
     typeof window !== 'undefined' ? window.location.pathname : '/'
   );
+  const [adminSession, setAdminSession] = useState<AuthSession | null>(null);
+  const [adminModalOpen, setAdminModalOpen] = useState(false);
 
   useEffect(() => {
     const onPop = () => setPathname(window.location.pathname);
@@ -134,10 +144,22 @@ function AppRouter() {
     }
   };
 
+  const handleOpenAdmin = () => {
+    if (adminSession && adminSession.exp > Date.now()) {
+      navigate('/admin');
+    } else {
+      setAdminModalOpen(true);
+    }
+  };
+
   if (pathname.startsWith('/admin')) {
     return (
       <Suspense fallback={<div className="min-h-screen bg-[#F4EFE2]" />}>
-        <AdminDashboard onNavigatePublic={() => navigate('/')} />
+        <AdminDashboard
+          onNavigatePublic={() => navigate('/')}
+          session={adminSession}
+          onSessionChange={setAdminSession}
+        />
       </Suspense>
     );
   }
@@ -150,7 +172,24 @@ function AppRouter() {
     );
   }
 
-  return <PublicClinicSite onNavigatePrivacy={() => navigate('/privacy')} />;
+  return (
+    <>
+      <PublicClinicSite
+        onNavigatePrivacy={() => navigate('/privacy')}
+        onOpenAdmin={handleOpenAdmin}
+      />
+      <AdminAccessModal
+        open={adminModalOpen}
+        onClose={() => setAdminModalOpen(false)}
+        onAuthenticated={(session) => {
+          setAdminSession(session);
+          setAdminModalOpen(false);
+          navigate('/admin');
+        }}
+        onOpenFullAuth={() => navigate('/admin')}
+      />
+    </>
+  );
 }
 
 export default function App() {

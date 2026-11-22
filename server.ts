@@ -284,9 +284,12 @@ function csvEscape(val: unknown): string {
 
 async function seedEnvAdminIfNeeded(): Promise<void> {
   const state = store.getState();
-  const envEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+  const envEmail =
+    process.env.ADMIN_EMAIL?.trim().toLowerCase() ||
+    state.settings.ownerEmail ||
+    'owner@khushdilclinic.in';
   const envPass = process.env.ADMIN_PASSWORD?.trim();
-  if (state.admins.length === 0 && envEmail && envPass && envPass.length >= 8) {
+  if (state.admins.length === 0 && envPass && envPass.length >= 8) {
     const password_hash = await hashPassword(envPass);
     state.admins.push({
       id: crypto.randomUUID(),
@@ -664,7 +667,7 @@ export async function createServerApp(options: { skipFrontend?: boolean } = {}) 
     const body = (req.body || {}) as Record<string, unknown>;
     const email = sanitizeText(body.email, 120).toLowerCase();
     const password = typeof body.password === 'string' ? body.password : '';
-    const rateKey = email || 'unknown';
+    const rateKey = email || 'password-only';
 
     const limit = checkLoginRateLimit(rateKey);
     if (!limit.allowed) {
@@ -675,10 +678,29 @@ export async function createServerApp(options: { skipFrontend?: boolean } = {}) 
     }
 
     const state = store.getState();
-    const user = state.admins.find((a) => a.email === email);
-    if (!user || !(await verifyPassword(password, user.password_hash))) {
+    let user = email ? state.admins.find((a) => a.email === email) : undefined;
+    let verified = false;
+
+    if (email) {
+      verified = Boolean(user && (await verifyPassword(password, user.password_hash)));
+    } else if (password) {
+      const ordered = [...state.admins].sort((a, b) =>
+        a.role === b.role ? 0 : a.role === 'owner' ? -1 : 1
+      );
+      for (const candidate of ordered) {
+        if (await verifyPassword(password, candidate.password_hash)) {
+          user = candidate;
+          verified = true;
+          break;
+        }
+      }
+    }
+
+    if (!user || !verified) {
       recordLoginFailure(rateKey);
-      res.status(401).json({ error: 'Invalid email or password.' });
+      res.status(401).json({
+        error: email ? 'Invalid email or password.' : 'Incorrect admin password.',
+      });
       return;
     }
 

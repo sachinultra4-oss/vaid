@@ -342,12 +342,14 @@ export function AdminAuthScreen({
           ) : (
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
-                <label className="block t-14 font-bold mb-1">Email</label>
+                <label className="block t-14 font-bold mb-1">
+                  Email <span className="font-normal text-[#12201A]/60">(optional)</span>
+                </label>
                 <input
                   type="email"
-                  required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Leave blank to sign in with password only"
                   className="w-full min-h-[44px] px-3.5 rounded-xl border border-[#12201A]/25 bg-[#F4EFE2]/45"
                 />
               </div>

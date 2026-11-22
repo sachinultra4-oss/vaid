@@ -131,16 +131,17 @@ function parseApproxLocation(req: Request): { city: string; state: string } {
 function parseDateWindow(fromStr?: string, toStr?: string) {
   const now = new Date();
   const defaultFrom = new Date(now.getTime() - 29 * 24 * 60 * 60 * 1000);
-  defaultFrom.setHours(0, 0, 0, 0);
+  defaultFrom.setUTCHours(0, 0, 0, 0);
 
-  let startMs = fromStr ? new Date(fromStr).getTime() : defaultFrom.getTime();
-  let endMs = toStr ? new Date(toStr).getTime() : now.getTime();
+  let startMs = fromStr
+    ? new Date(fromStr.length <= 10 ? `${fromStr}T00:00:00.000Z` : fromStr).getTime()
+    : defaultFrom.getTime();
+  let endMs = toStr
+    ? new Date(toStr.length <= 10 ? `${toStr}T23:59:59.999Z` : toStr).getTime()
+    : now.getTime();
 
   if (Number.isNaN(startMs)) startMs = defaultFrom.getTime();
   if (Number.isNaN(endMs)) endMs = now.getTime();
-  if (toStr && toStr.length <= 10) {
-    endMs = new Date(`${toStr}T23:59:59.999`).getTime();
-  }
   if (endMs < startMs) endMs = startMs + 24 * 60 * 60 * 1000 - 1;
 
   const spanMs = Math.max(24 * 60 * 60 * 1000, endMs - startMs);
@@ -309,14 +310,23 @@ export async function createServerApp() {
   app.use(express.json({ limit: '15mb' }));
   app.use(express.text({ type: 'text/plain', limit: '2mb' }));
 
-  // Serve uploaded WebP/JPEG/PNG photos statically
-  app.use(
-    '/uploads',
-    express.static(UPLOADS_DIR, {
-      maxAge: '7d',
-      fallthrough: false,
-    })
-  );
+  // Serve uploaded WebP/JPEG/PNG photos statically without throwing ENOENT stack traces
+  app.use('/uploads', express.static(UPLOADS_DIR, { maxAge: '7d', fallthrough: true }));
+  app.use('/uploads', (_req: Request, res: Response) => {
+    res.status(404).end();
+  });
+
+  app.get('/favicon.ico', (_req: Request, res: Response) => {
+    const logoPath = path.resolve(
+      process.cwd(),
+      'public/assets/aistudio/747882622_18462579148112646_5609709282036442747_n.jpg_2bb6d326.jpeg'
+    );
+    if (fs.existsSync(logoPath)) {
+      res.sendFile(logoPath);
+    } else {
+      res.status(204).end();
+    }
+  });
 
   // ========================================================================
   // PUBLIC API (Strict read of published assets + insert telemetry/inquiries)
@@ -808,14 +818,13 @@ export async function createServerApp() {
     const convPrev =
       uniqueVisitorsPrev > 0 ? Number(((inquiriesPrev.length / uniqueVisitorsPrev) * 100).toFixed(1)) : 0;
 
-    // Daily chart series
     const dayMap = new Map<string, { date: string; visitors: Set<string>; inquiries: number }>();
     const dayCursor = new Date(startMs);
-    dayCursor.setHours(0, 0, 0, 0);
+    dayCursor.setUTCHours(0, 0, 0, 0);
     while (dayCursor.getTime() <= endMs && dayMap.size < 90) {
       const key = dayCursor.toISOString().slice(0, 10);
       dayMap.set(key, { date: key, visitors: new Set(), inquiries: 0 });
-      dayCursor.setDate(dayCursor.getDate() + 1);
+      dayCursor.setUTCDate(dayCursor.getUTCDate() + 1);
     }
     for (const s of sessionsCur) {
       const k = s.started_at.slice(0, 10);
@@ -1653,6 +1662,24 @@ export async function createServerApp() {
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Content-Disposition', 'attachment; filename="khushdil-clinic-backup.json"');
     res.send(JSON.stringify(safeDump, null, 2));
+  });
+
+  // Return clean JSON 404 for unknown /api routes
+  app.use('/api', (_req: Request, res: Response) => {
+    res.status(404).json({ error: 'API route not found.' });
+  });
+
+  // Clean error handler for malformed JSON / oversized payloads (no stack trace leaks)
+  app.use((err: Error & { status?: number; type?: string }, _req: Request, res: Response, _next: NextFunction) => {
+    if (err?.type === 'entity.parse.failed') {
+      res.status(400).json({ error: 'Invalid JSON request body.' });
+      return;
+    }
+    if (err?.type === 'entity.too.large') {
+      res.status(413).json({ error: 'Uploaded payload exceeds limit.' });
+      return;
+    }
+    res.status(err?.status || 500).json({ error: 'Internal server error.' });
   });
 
   // ========================================================================

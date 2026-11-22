@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Download, History, Plus, RotateCcw, Save, Send, Trash2, UserPlus } from 'lucide-react';
 import type {
   AdminRole,
@@ -28,6 +28,10 @@ export function ContentEditorPage({
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
   const [err, setErr] = useState('');
+
+  useEffect(() => {
+    setDraft(initialContent);
+  }, [initialContent]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();

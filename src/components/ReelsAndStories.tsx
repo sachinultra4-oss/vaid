@@ -45,6 +45,9 @@ export function ReelsSection() {
                 {reel.videoUrl && isPlaying ? (
                   <video
                     src={reel.videoUrl}
+                    ref={(el) => {
+                      if (el) el.muted = !isUnmuted;
+                    }}
                     muted={!isUnmuted}
                     playsInline
                     autoPlay

@@ -1,6 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { MessageCircle, Phone } from 'lucide-react';
-import { AdminDashboard } from './admin/AdminDashboard';
 import { BodyMapTool } from './components/BodyMapTool';
 import { BodyTypeQuiz } from './components/BodyTypeQuiz';
 import { CareProcess3D } from './components/CareProcess3D';
@@ -9,12 +8,18 @@ import { BookSection, FooterSection, QuestionsSection } from './components/FaqAn
 import { HerbsTunnel3D } from './components/HerbsTunnel3D';
 import { HeroSection } from './components/HeroSection';
 import { Navbar } from './components/Navbar';
-import { PrivacyPage } from './components/PrivacyPage';
 import { PatientStoriesSection, ReelsSection } from './components/ReelsAndStories';
 import { TheVaidSection } from './components/TheVaidSection';
 import { TreatmentsGrid } from './components/TreatmentsGrid';
 import { ClinicProvider, formatPhoneWhatsApp, useClinicData } from './context/ClinicContext';
 import { submitPublicInquiry, tracker } from './utils/tracker';
+
+const AdminDashboard = lazy(() =>
+  import('./admin/AdminDashboard').then((m) => ({ default: m.AdminDashboard }))
+);
+const PrivacyPage = lazy(() =>
+  import('./components/PrivacyPage').then((m) => ({ default: m.PrivacyPage }))
+);
 
 function PublicClinicSite({ onNavigatePrivacy }: { onNavigatePrivacy: () => void }) {
   const { content } = useClinicData();
@@ -130,11 +135,19 @@ function AppRouter() {
   };
 
   if (pathname.startsWith('/admin')) {
-    return <AdminDashboard onNavigatePublic={() => navigate('/')} />;
+    return (
+      <Suspense fallback={<div className="min-h-screen bg-[#F4EFE2]" />}>
+        <AdminDashboard onNavigatePublic={() => navigate('/')} />
+      </Suspense>
+    );
   }
 
   if (pathname.startsWith('/privacy')) {
-    return <PrivacyPage onBack={() => navigate('/')} />;
+    return (
+      <Suspense fallback={<div className="min-h-screen bg-[#F4EFE2]" />}>
+        <PrivacyPage onBack={() => navigate('/')} />
+      </Suspense>
+    );
   }
 
   return <PublicClinicSite onNavigatePrivacy={() => navigate('/privacy')} />;

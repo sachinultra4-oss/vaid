@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import type {
   AdSpendRecord,
@@ -28,9 +29,10 @@ export interface DatabaseState {
   notifications: NotificationLogEntry[];
 }
 
-const DATA_DIR = path.resolve(process.cwd(), 'data');
+const RUNTIME_BASE_DIR = process.env.VERCEL ? path.join(os.tmpdir(), 'khushdil-clinic') : process.cwd();
+const DATA_DIR = path.resolve(RUNTIME_BASE_DIR, 'data');
 const DB_PATH = path.join(DATA_DIR, 'clinic-db.json');
-export const UPLOADS_DIR = path.resolve(process.cwd(), 'uploads');
+export const UPLOADS_DIR = path.resolve(RUNTIME_BASE_DIR, 'uploads');
 
 function slot(
   slot_id: string,

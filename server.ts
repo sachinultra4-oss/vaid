@@ -302,7 +302,7 @@ async function seedEnvAdminIfNeeded(): Promise<void> {
   }
 }
 
-export async function createServerApp() {
+export async function createServerApp(options: { skipFrontend?: boolean } = {}) {
   await seedEnvAdminIfNeeded();
 
   const app = express();
@@ -317,12 +317,18 @@ export async function createServerApp() {
   });
 
   app.get('/favicon.ico', (_req: Request, res: Response) => {
-    const logoPath = path.resolve(
+    const publicLogo = path.resolve(
       process.cwd(),
       'public/assets/aistudio/747882622_18462579148112646_5609709282036442747_n.jpg_2bb6d326.jpeg'
     );
-    if (fs.existsSync(logoPath)) {
-      res.sendFile(logoPath);
+    const distLogo = path.resolve(
+      process.cwd(),
+      'dist/assets/aistudio/747882622_18462579148112646_5609709282036442747_n.jpg_2bb6d326.jpeg'
+    );
+    if (fs.existsSync(publicLogo)) {
+      res.sendFile(publicLogo);
+    } else if (fs.existsSync(distLogo)) {
+      res.sendFile(distLogo);
     } else {
       res.status(204).end();
     }
@@ -1685,29 +1691,34 @@ export async function createServerApp() {
   // ========================================================================
   // VITE MIDDLEWARE (DEV) OR STATIC DIST (PROD)
   // ========================================================================
-  const isProd = process.env.NODE_ENV === 'production';
-  if (!isProd) {
-    const { createServer: createViteServer } = await import('vite');
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: 'spa',
-    });
-    app.use((req, res, next) => {
-      if (req.path.startsWith('/admin')) {
-        res.setHeader('X-Robots-Tag', 'noindex, nofollow');
-      }
-      next();
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distDir = path.resolve(process.cwd(), 'dist');
-    app.use(express.static(distDir));
-    app.get('*', (req: Request, res: Response) => {
-      if (req.path.startsWith('/admin')) {
-        res.setHeader('X-Robots-Tag', 'noindex, nofollow');
-      }
-      res.sendFile(path.join(distDir, 'index.html'));
-    });
+  if (!options.skipFrontend) {
+    const isProd = process.env.NODE_ENV === 'production';
+    if (!isProd) {
+      const vitePkg = 'vite';
+      const { createServer: createViteServer } = (await import(
+        /* @vite-ignore */ vitePkg
+      )) as typeof import('vite');
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: 'spa',
+      });
+      app.use((req, res, next) => {
+        if (req.path.startsWith('/admin')) {
+          res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+        }
+        next();
+      });
+      app.use(vite.middlewares);
+    } else {
+      const distDir = path.resolve(process.cwd(), 'dist');
+      app.use(express.static(distDir));
+      app.get('*', (req: Request, res: Response) => {
+        if (req.path.startsWith('/admin')) {
+          res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+        }
+        res.sendFile(path.join(distDir, 'index.html'));
+      });
+    }
   }
 
   return app;
